@@ -1,0 +1,14 @@
+{
+    ".or": [
+        {
+            "message_type": "private"
+        },
+        {
+            "message_type": "group",
+            "anonymous": {
+                ".eq": null
+            }
+        }
+        }
+    ]
+}
