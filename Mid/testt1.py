@@ -5,9 +5,19 @@ import requests
 import re
 import tiktoken
 from datetime import datetime, timedelta
-import config
+import importlib
+import sys
 
-#memorypath的生成要放在外面
+#修改，在地址栏中只保留一个main_path =  r"C:\Users\KaerMorh\Atalia\Mid“ 并增加一个函数，使其余路径都在while运行时生成。若由路径不存在，则自动创造。
+perso = 'Atalia'
+
+debug_mode = True
+main_path = r"C:\Users\KaerMorh\Atalia\Mid"
+# scenario_path = r"C:\Users\KaerMorh\Atalia\Mid\Scenario"
+# memory_path = r"C:\Users\KaerMorh\Atalia\Mid\Memory"
+# log_path = r"C:\Users\KaerMorh\Atalia\Mid\Log"
+
+
 
 def loadScenario(name):  #加载人格
     file_path = os.path.join(scenario_path, f"{name}.json")
@@ -123,9 +133,9 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
   See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
 
 
-def initMemory(id, persona):
+def initMemory(user_number, persona):
     files = os.listdir(memory_path)
-    json_files = [f for f in files if f.startswith(f"{id}_{persona}") and f.endswith('.json')]
+    json_files = [f for f in files if f.startswith(f"{user_number}_{persona}") and f.endswith('.json')]
     latest_file = None
     latest_timestamp = None
 
@@ -154,14 +164,12 @@ def initMemory(id, persona):
     if latest_file:
         return latest_file
     else:
-        new_file_name = f"{id}_{persona}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        new_file_name = f"{user_number}_{persona}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         new_file_path = os.path.join(memory_path, new_file_name)
         with open(new_file_path, "w", encoding="utf-8") as f:
             json.dump([], f)
 
         return new_file_name
-
-
 
 def initialize_paths(main_path):
     scenario_path = os.path.join(main_path, "Scenario")
@@ -176,69 +184,48 @@ def initialize_paths(main_path):
 
     return scenario_path, memory_path, log_path, plugin_path
 
-def process_command(command, context_path, id, persona):
-    #在以后，我可能会逐步扩充指令集，在指令很多的时候，我有必要将processcommand函数的内容放在另一个文件中。我创造了一个新路径/Mid/Plugin/Commands，请不要将函数放出去，而是将每个指令槽交由对应的指令文件处理。
-
-    #例如，收到了!stip，则应该去Plugin中寻找stip.py，如果找得到则进行相应处理，找不到则提出警告
-    #这只是一个测试程序，之后会被转变为一个bot的消息处理程序，因此你需要修改processco函数，使其会将要输出的text先返回，再在while循环中输出
+def process_command(command, context_path, user_number, persona):
     cmd_parts = command.split(" ")
     command_output = ""
 
-    if cmd_parts[0] == "!new":
-        new_file_name = f"{id}_{persona}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        new_file_path = os.path.join(memory_path, new_file_name)
-        with open(new_file_path, "w", encoding="utf-8") as f:
-            json.dump([], f)
-        command_output = "New conversation started."
-    elif cmd_parts[0] == "!change":
-        if len(cmd_parts) > 1:
-            new_persona = cmd_parts[1]
-            scenario_file_path = os.path.join(scenario_path, f"{new_persona}.json")
-            if os.path.exists(scenario_file_path):
-                command_output = f"Persona changed to {new_persona}."
-                persona = new_persona
-            else:
-                command_output = f"Persona '{new_persona}' not found. Keeping current persona."
-        else:
-            command_output = "Please provide a persona name."
-    elif command == "!end":
-        return "end", persona, command_output
+    plugin_name = cmd_parts[0][1:]
+    plugin_path = os.path.join("Mid", "Plugin", "Commands", f"{plugin_name}.py")
+
+    if os.path.exists(plugin_path):
+        try:
+            plugin_module = importlib.import_module(f"Mid.Plugin.Commands.{plugin_name}")
+            context_path, persona, command_output = plugin_module.run(command, context_path, user_number, persona)
+        except Exception as e:
+            command_output = f"Error while executing the plugin: {str(e)}"
     else:
-        command_output = "Invalid command."
+        command_output = f"Command '{plugin_name}' not found."
 
     return context_path, persona, command_output
 
-def groupConvert(user_id, msg):
-
-    return user_id+':'+msg
-
-
-perso = config.perso
-debug_mode = config.debug_mode
-main_path = config.main_path
-
-id = '12345'
-user_id = '183'
-msg= ''
-is_group = True
-
-
+msg = ''
 
 while msg != 'end':
+    user_number = '12345'
 
-    group_id = '1467'
-    #group_id = event.get
-    if is_group:      #group manage 1
-        id = group_id
-
-    scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
     os.open
+    scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
+    persona = loadScenario(perso)
 
-    context_path = os.path.join(memory_path, initMemory(id, perso))
+
+    context_path = os.path.join(memory_path, initMemory(user_number,perso))
+    context = load_context(context_path)
+
+    full_conversation = persona.copy()
+
+
+
+    if context:
+        full_conversation.extend(context)
 
     msg = input("Please enter your message: ")
+
     if msg.startswith('!'):
-        context_path, perso, command_output = process_command(msg, context_path, id, perso)
+        context_path, perso, command_output = process_command(msg, context_path, user_number, perso)
         print(command_output)
         if context_path == "end":
             break
@@ -246,18 +233,7 @@ while msg != 'end':
     if msg == 'end':
         break
 
-    persona = loadScenario(perso)
-    context = load_context(context_path)
-    full_conversation = persona.copy()
-
-    if context:
-        full_conversation.extend(context)
-
     # Use the full_conversation variable instead of persona in the convert function
-    if is_group:
-        #user_id = event.get_user_id()
-        msg = groupConvert(user_id,msg)
-
     conversation = convert(full_conversation, msg)
 
     data = {

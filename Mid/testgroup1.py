@@ -5,17 +5,9 @@ import requests
 import re
 import tiktoken
 from datetime import datetime, timedelta
+import config
 
-key = "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"
-#
 
-user_number = '12345'
-debug_mode = True
-scenario_path = r"C:\Users\KaerMorh\Atalia\Mid\Senario"
-memory_path = r"C:\Users\KaerMorh\Atalia\Mid\Memory"
-log_path = r"C:\Users\KaerMorh\Atalia\Mid\Log"
-msg= ''
-os.open
 
 def loadScenario(name):  #加载人格
     file_path = os.path.join(scenario_path, f"{name}.json")
@@ -59,6 +51,10 @@ def load_context(context_path):
         return None
 
     context = json.loads(file_content)
+
+    # If the context has only one element and it's a timestamp, return an empty context
+    if len(context) == 1 and "timestamp" in context[0]:
+        return []
 
     # Remove the timestamp entry from the context
     context.pop() if context and "timestamp" in context[-1] else None
@@ -127,9 +123,9 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
   See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
 
 
-def initMemory(user_number):
+def initMemory(id, persona):
     files = os.listdir(memory_path)
-    json_files = [f for f in files if f.startswith(user_number) and f.endswith('.json')]
+    json_files = [f for f in files if f.startswith(f"{id}_{persona}") and f.endswith('.json')]
     latest_file = None
     latest_timestamp = None
 
@@ -158,7 +154,7 @@ def initMemory(user_number):
     if latest_file:
         return latest_file
     else:
-        new_file_name = f"{user_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        new_file_name = f"{id}_{persona}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         new_file_path = os.path.join(memory_path, new_file_name)
         with open(new_file_path, "w", encoding="utf-8") as f:
             json.dump([], f)
@@ -166,23 +162,101 @@ def initMemory(user_number):
         return new_file_name
 
 
+
+def initialize_paths(main_path):
+    scenario_path = os.path.join(main_path, "Scenario")
+    memory_path = os.path.join(main_path, "Memory")
+    log_path = os.path.join(main_path, "Log")
+    plugin_path = os.path.join(main_path, "Plugin", "Commands")
+
+    os.makedirs(scenario_path, exist_ok=True)
+    os.makedirs(memory_path, exist_ok=True)
+    os.makedirs(log_path, exist_ok=True)
+    os.makedirs(plugin_path, exist_ok=True)
+
+    return scenario_path, memory_path, log_path, plugin_path
+
+def process_command(command, context_path, id, persona):
+    #在以后，我可能会逐步扩充指令集，在指令很多的时候，我有必要将processcommand函数的内容放在另一个文件中。我创造了一个新路径/Mid/Plugin/Commands，请不要将函数放出去，而是将每个指令槽交由对应的指令文件处理。
+
+    #例如，收到了!stip，则应该去Plugin中寻找stip.py，如果找得到则进行相应处理，找不到则提出警告
+    #这只是一个测试程序，之后会被转变为一个bot的消息处理程序，因此你需要修改processco函数，使其会将要输出的text先返回，再在while循环中输出
+    cmd_parts = command.split(" ")
+    command_output = ""
+
+    if cmd_parts[0] == "!new":
+        new_file_name = f"{id}_{persona}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        new_file_path = os.path.join(memory_path, new_file_name)
+        with open(new_file_path, "w", encoding="utf-8") as f:
+            json.dump([], f)
+        command_output = "New conversation started."
+    elif cmd_parts[0] == "!change":
+        if len(cmd_parts) > 1:
+            new_persona = cmd_parts[1]
+            scenario_file_path = os.path.join(scenario_path, f"{new_persona}.json")
+            if os.path.exists(scenario_file_path):
+                command_output = f"Persona changed to {new_persona}."
+                persona = new_persona
+            else:
+                command_output = f"Persona '{new_persona}' not found. Keeping current persona."
+        else:
+            command_output = "Please provide a persona name."
+    elif command == "!end":
+        return "end", persona, command_output
+    else:
+        command_output = "Invalid command."
+
+    return context_path, persona, command_output
+
+def groupConvert(user_id, msg):
+
+    return user_id+':'+msg
+
+
+perso = config.perso
+debug_mode = config.debug_mode
+main_path = config.main_path
+
+id = '12345'
+user_id = '183'
+msg= ''
+is_group = True
+
+
+
 while msg != 'end':
 
-    persona = loadScenario('Atalia')
+    group_id = '1467'
+    #group_id = event.get
+    if is_group:      #group manage 1
+        id = group_id
 
+    scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
+    os.open
 
-    context_path = os.path.join(memory_path, initMemory(user_number))
+    context_path = os.path.join(memory_path, initMemory(id, perso))
+
+    msg = input("Please enter your message: ")
+    if msg.startswith('!'):
+        context_path, perso, command_output = process_command(msg, context_path, id, perso)
+        print(command_output)
+        if context_path == "end":
+            break
+        continue
+    if msg == 'end':
+        break
+
+    persona = loadScenario(perso)
     context = load_context(context_path)
-
     full_conversation = persona.copy()
 
     if context:
         full_conversation.extend(context)
 
-    msg = input("Please enter your message: ")
-    if msg == 'end' :
-        break
     # Use the full_conversation variable instead of persona in the convert function
+    if is_group:
+        #user_id = event.get_user_id()
+        msg = groupConvert(user_id,msg)
     conversation = convert(full_conversation, msg)
 
     data = {
