@@ -7,7 +7,7 @@ import requests
 import tiktoken
 from datetime import datetime, timedelta
 import sys
-
+from nonebot.adapters.onebot.v11 import Bot, Message, PrivateMessageEvent ,GroupMessageEvent
 main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 sys.path.append(main_path)
 from config import debug_mode, allow_group, perso
@@ -41,30 +41,46 @@ def initialize_paths(main_path):
 scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
 
 chatgpt = on_message()
+@chatgpt.handle()
+async def handle_Group(event: GroupMessageEvent):
+    group_id = str(event.group_id)
+    user_id = str(event.user_id)
+    # await chatgpt.finish(''+group_id+user_id )
+    if (allow_group == False):
+        await chatgpt.finish('')
+    msg = event.get_plaintext()
+    text = main(msg,user_id,group_id,True)
+    await chatgpt.finish(text)
 
 
 @chatgpt.handle()
-async def handle_function(event: Event):
-    # perso = 'Atalia'
-    # debug_mode = True
-    global perso, allow_group
+async def handle_Private(event: PrivateMessageEvent):
+
     is_group = False
     msg = event.get_plaintext()
-    user_id = event.get_user_id()
-    group_id = '1467'
+    user_id = str(event.user_id)
+    group_id = '0000'
+    # text = type()
+    # print(text)
+    # await chatgpt.finish(str(user_id))
 
-    # await chatgpt.finish('')
-    if ((is_group == True) and (allow_group == False)):
-        await chatgpt.finish('')
+    text = main(msg,user_id,group_id,is_group)
+    await chatgpt.finish(text)
+
+
+
+def main(msg, user_id,group_id,is_group):
     id = user_id
-    if is_group:  # group manage 1
+    if is_group:      #group manage 1
         id = group_id
+
+    global perso,allow_group,debug_mode
 
     context_path = os.path.join(memory_path, initMemory(id, perso))
     if msg.startswith('!'):
         context_path, perso, command_output = process_command(
             msg, context_path, id, perso)
-        await chatgpt.finish(command_output)
+        return command_output
         if context_path == "end":
             return
         else:
@@ -83,7 +99,7 @@ async def handle_function(event: Event):
         full_conversation.extend(context)
 
     if is_group:
-        msg = groupConvert(user_id, msg)
+        msg = groupConvert(user_id,msg)
     conversation = convert(full_conversation, msg)
 
     data = {
@@ -102,8 +118,8 @@ async def handle_function(event: Event):
 
     tokens_used = num_tokens_from_messages(updated_context)
     log_message(log_path, context_path, tokens_used, msg, text, debug_mode)
-
-    await chatgpt.finish(text)
+    return text
+    # await chatgpt.finish(text)
 
 
 def loadScenario(name):  # 加载人格
