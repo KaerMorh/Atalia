@@ -50,7 +50,7 @@ async def handle_Group(event: GroupMessageEvent):
     msg = event.get_plaintext()
     # await chatgpt.finish(''+group_id+user_id )
     if ( (allow_group == False) and not(msg.startswith('!')) ):
-        await chatgpt.finish('')
+        await chatgpt.finish()
 
     text = main(msg,user_id,group_id,True)
     await chatgpt.finish(text)
@@ -84,10 +84,7 @@ def main(msg, user_id,group_id,is_group):
         context_path, perso, command_output = process_command(
             msg, context_path, id, perso)
         return command_output
-        if context_path == "end":
-            return
-        else:
-            return
+
 
     if msg == 'end':
         return
