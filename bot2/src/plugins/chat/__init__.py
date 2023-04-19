@@ -23,7 +23,7 @@ from config import debug_mode, allow_group, perso
 # msg = ''
 main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 
-
+t =1
 def initialize_paths(main_path):
     scenario_path = os.path.join(main_path, "Scenario")
     memory_path = os.path.join(main_path, "Memory")
@@ -43,14 +43,16 @@ scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
 chatgpt = on_message()
 @chatgpt.handle()
 async def handle_Group(event: GroupMessageEvent):
+    global allow_group
     group_id = str(event.group_id)
     user_id = str(event.user_id)
-    # await chatgpt.finish(''+group_id+user_id )
-    if (allow_group == False):
-        await chatgpt.finish('')
     msg = event.get_plaintext()
+    # await chatgpt.finish(''+group_id+user_id )
+    if ( (allow_group == False) and not(msg.startswith('!')) ):
+        await chatgpt.finish('')
+
     text = main(msg,user_id,group_id,True)
-    await chatgpt.finish(text)
+    await chatgpt.finish(text+str(allow_group)+str(str(t)))
 
 
 @chatgpt.handle()
@@ -74,7 +76,7 @@ def main(msg, user_id,group_id,is_group):
     if is_group:      #group manage 1
         id = group_id
 
-    global perso,allow_group,debug_mode
+    global perso,debug_mode
 
     context_path = os.path.join(memory_path, initMemory(id, perso))
     if msg.startswith('!'):
@@ -341,6 +343,29 @@ def process_command(command, context_path, id, persona):
                 command_output = f"Persona '{new_persona}' not found. Keeping current persona."
         else:
             command_output = "Please provide a persona name."
+    elif command == "!stgp":
+        config_file = os.path.join(main_path, "config.py")
+
+        with open(config_file, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+        updated_lines = []
+        grouped = None
+
+        for line in lines:
+            if line.startswith("allow_group"):
+                grouped = not eval(line.split(" = ")[1].strip())
+                updated_lines.append(f"allow_group = {grouped}\n")
+            else:
+                updated_lines.append(line)
+
+        with open(config_file, "w", encoding="utf-8") as file:
+            file.writelines(updated_lines)
+
+        global allow_group
+        # allow_group = grouped
+        allow_group = not(allow_group)
+        command_output = f"Group chat is {'enabled' if grouped else 'disabled'}"
+
     elif command == "!end":
         return "end", persona, command_output
     else:

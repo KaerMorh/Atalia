@@ -243,6 +243,30 @@ def process_command(command, context_path, id, persona):
                 command_output = f"Persona '{new_persona}' not found. Keeping current persona."
         else:
             command_output = "Please provide a persona name."
+
+
+
+    elif command == "!stgp":
+        config_file = os.path.join(main_path, "config.py")
+
+        with open(config_file, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+
+        updated_lines = []
+        allow_group = None
+
+        for line in lines:
+            if line.startswith("allow_group"):
+                allow_group = not eval(line.split(" = ")[1].strip())
+                updated_lines.append(f"allow_group = {allow_group}\n")
+            else:
+                updated_lines.append(line)
+
+        with open(config_file, "w", encoding="utf-8") as file:
+            file.writelines(updated_lines)
+
+        command_output = f"Group chat is {'enabled' if allow_group else 'disabled'}"
+
     elif command == "!end":
         return "end", persona, command_output
     else:
