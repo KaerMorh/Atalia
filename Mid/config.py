@@ -1,6 +1,6 @@
 # config.py
 
-perso = "Rin"
+perso = "Atalia"
 debug_mode = True
-allow_group = False
+allow_group = True
 # main_path = r"C:\Users\KaerMorh\Atalia\Mid"

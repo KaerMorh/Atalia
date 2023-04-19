@@ -7,11 +7,12 @@ import requests
 import tiktoken
 from datetime import datetime, timedelta
 import sys
+
 main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 sys.path.append(main_path)
-from Mid.config import debug_mode,allow_group
-# import config
+from config import debug_mode, allow_group, perso
 
+# import config
 
 # perso = config.perso
 # debug_mode = config.debug_mode
@@ -35,25 +36,31 @@ def initialize_paths(main_path):
     os.makedirs(plugin_path, exist_ok=True)
 
     return scenario_path, memory_path, log_path, plugin_path
+
+
 scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
 
 chatgpt = on_message()
+
+
 @chatgpt.handle()
 async def handle_function(event: Event):
     # perso = 'Atalia'
     # debug_mode = True
-
+    global perso, allow_group
     is_group = False
     msg = event.get_plaintext()
     user_id = event.get_user_id()
     group_id = '1467'
 
     # await chatgpt.finish('')
-    if((is_group==True) and (allow_group == False)):
+    if ((is_group == True) and (allow_group == False)):
         await chatgpt.finish('')
     id = user_id
     if is_group:  # group manage 1
         id = group_id
+
+    context_path = os.path.join(memory_path, initMemory(id, perso))
     if msg.startswith('!'):
         context_path, perso, command_output = process_command(
             msg, context_path, id, perso)
@@ -65,8 +72,6 @@ async def handle_function(event: Event):
 
     if msg == 'end':
         return
-
-  
 
     context_path = os.path.join(memory_path, initMemory(id, perso))
 
@@ -101,7 +106,7 @@ async def handle_function(event: Event):
     await chatgpt.finish(text)
 
 
-def loadScenario(name):  #加载人格
+def loadScenario(name):  # 加载人格
     file_path = os.path.join(scenario_path, f"{name}.json")
 
     with open(file_path, "r", encoding="utf-8") as file:
@@ -109,7 +114,8 @@ def loadScenario(name):  #加载人格
 
     return scenario_data["prompt"]
 
-def requestApi(data):  #请求api
+
+def requestApi(data):  # 请求api
     payload = {
         "data": json.dumps(data)
     }
@@ -118,7 +124,8 @@ def requestApi(data):  #请求api
     text = result['text']['message']['content']
     return result
 
-def convert(persona, msg, role=0): #将人格与对话合一，生成conversation user:0, assissant:1
+
+def convert(persona, msg, role=0):  # 将人格与对话合一，生成conversation user:0, assissant:1
     if role == 0:
         user_message = {
             "role": "user",
@@ -133,6 +140,7 @@ def convert(persona, msg, role=0): #将人格与对话合一，生成conversatio
     result.append(user_message)
 
     return result
+
 
 def load_context(context_path):
     with open(context_path, "r", encoding="utf-8") as f:
@@ -161,6 +169,7 @@ def load_context(context_path):
 
     return context
 
+
 def save2txt(context_path, msg, role=0):
     with open(context_path, "r", encoding="utf-8") as f:
         file_content = f.read()
@@ -176,7 +185,6 @@ def save2txt(context_path, msg, role=0):
     # Save the updated conversation back to the JSON file, with the timestamp
     with open(context_path, "w", encoding="utf-8") as f:
         json.dump(updated_conversation + [{"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}], f)
-
 
 
 def log_message(log_path, context_path, tokens_used, user_msg, assistant_msg, debug_mode=False):
@@ -195,23 +203,23 @@ def log_message(log_path, context_path, tokens_used, user_msg, assistant_msg, de
 
 
 def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
-  """Returns the number of tokens used by a list of messages."""
-  try:
-      encoding = tiktoken.encoding_for_model(model)
-  except KeyError:
-      encoding = tiktoken.get_encoding("cl100k_base")
-  if model == "gpt-3.5-turbo-0301":  # note: future models may deviate from this
-      num_tokens = 0
-      for message in messages:
-          num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
-          for key, value in message.items():
-              num_tokens += len(encoding.encode(value))
-              if key == "name":  # if there's a name, the role is omitted
-                  num_tokens += -1  # role is always required and always 1 token
-      num_tokens += 2  # every reply is primed with <im_start>assistant
-      return num_tokens
-  else:
-      raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}.
+    """Returns the number of tokens used by a list of messages."""
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        encoding = tiktoken.get_encoding("cl100k_base")
+    if model == "gpt-3.5-turbo-0301":  # note: future models may deviate from this
+        num_tokens = 0
+        for message in messages:
+            num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+            for key, value in message.items():
+                num_tokens += len(encoding.encode(value))
+                if key == "name":  # if there's a name, the role is omitted
+                    num_tokens += -1  # role is always required and always 1 token
+        num_tokens += 2  # every reply is primed with <im_start>assistant
+        return num_tokens
+    else:
+        raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}.
   See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
 
 
@@ -282,14 +290,11 @@ def update_config(main_path, variable_name, new_value):
         f.writelines(content)
 
 
-
-
-
 def process_command(command, context_path, id, persona):
-    #在以后，我可能会逐步扩充指令集，在指令很多的时候，我有必要将processcommand函数的内容放在另一个文件中。我创造了一个新路径/Mid/Plugin/Commands，请不要将函数放出去，而是将每个指令槽交由对应的指令文件处理。
+    # 在以后，我可能会逐步扩充指令集，在指令很多的时候，我有必要将processcommand函数的内容放在另一个文件中。我创造了一个新路径/Mid/Plugin/Commands，请不要将函数放出去，而是将每个指令槽交由对应的指令文件处理。
 
-    #例如，收到了!stip，则应该去Plugin中寻找stip.py，如果找得到则进行相应处理，找不到则提出警告
-    #这只是一个测试程序，之后会被转变为一个bot的消息处理程序，因此你需要修改processco函数，使其会将要输出的text先返回，再在while循环中输出
+    # 例如，收到了!stip，则应该去Plugin中寻找stip.py，如果找得到则进行相应处理，找不到则提出警告
+    # 这只是一个测试程序，之后会被转变为一个bot的消息处理程序，因此你需要修改processco函数，使其会将要输出的text先返回，再在while循环中输出
     cmd_parts = command.split(" ")
     command_output = ""
     if cmd_parts[0] == "!new":
@@ -327,9 +332,9 @@ def process_command(command, context_path, id, persona):
 
     return context_path, persona, command_output
 
-def groupConvert(user_id, msg):
 
-    return user_id+':'+msg
+def groupConvert(user_id, msg):
+    return user_id + ':' + msg
 
 
 

@@ -1,13 +1,16 @@
 import os
+import openai
 import json
 import requests
 import re
 import tiktoken
 from datetime import datetime, timedelta
+import config
 import sys;
 main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 sys.path.append(main_path)
-from Mid.config import perso,debug_mode
+from config import perso,debug_mode
+
 
 
 def loadScenario(name):  #加载人格
@@ -267,7 +270,8 @@ while msg != 'end':
 
     group_id = '1467'
     #group_id = event.get
-
+    if is_group:      #group manage 1
+        id = group_id
 
     scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
     os.open
