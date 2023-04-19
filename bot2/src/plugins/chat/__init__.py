@@ -8,6 +8,7 @@ import tiktoken
 from datetime import datetime, timedelta
 import sys
 from nonebot.adapters.onebot.v11 import Bot, Message, PrivateMessageEvent ,GroupMessageEvent
+
 main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 sys.path.append(main_path)
 from config import debug_mode, allow_group, perso
@@ -21,7 +22,7 @@ from config import debug_mode, allow_group, perso
 # id = '12345'
 # user_id = '183'
 # msg = ''
-main_path = r"C:\Users\KaerMorh\Atalia\Mid"
+
 
 t =1
 def initialize_paths(main_path):
@@ -52,7 +53,7 @@ async def handle_Group(event: GroupMessageEvent):
         await chatgpt.finish('')
 
     text = main(msg,user_id,group_id,True)
-    await chatgpt.finish(text+str(allow_group)+str(str(t)))
+    await chatgpt.finish(text)
 
 
 @chatgpt.handle()
