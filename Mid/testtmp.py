@@ -6,6 +6,10 @@ import re
 import tiktoken
 from datetime import datetime, timedelta
 import config
+import sys;
+main_path = r"C:\Users\KaerMorh\Atalia\Mid"
+sys.path.append(main_path)
+from config import perso,debug_mode
 
 
 
@@ -176,6 +180,33 @@ def initialize_paths(main_path):
 
     return scenario_path, memory_path, log_path, plugin_path
 
+def update_config(main_path, variable_name, new_value):
+    config_file_path = os.path.join(main_path, "config.py")
+
+    # Read the content of the config.py file
+    with open(config_file_path, "r", encoding="utf-8") as f:
+        content = f.readlines()
+
+    # Find the line containing the variable and update its value
+    try:
+        variable_found = False
+        for i, line in enumerate(content):
+            if line.startswith(variable_name):
+                content[i] = f"{variable_name} = {new_value}\n"
+                variable_found = True
+                break
+
+        if not variable_found:
+            raise ValueError(f"Variable '{variable_name}' not found in the config file.")
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        sys.exit(1)
+
+    # Write the updated content back to the config.py file
+    with open(config_file_path, "w", encoding="utf-8") as f:
+        f.writelines(content)
+
 def process_command(command, context_path, id, persona):
     #在以后，我可能会逐步扩充指令集，在指令很多的时候，我有必要将processcommand函数的内容放在另一个文件中。我创造了一个新路径/Mid/Plugin/Commands，请不要将函数放出去，而是将每个指令槽交由对应的指令文件处理。
 
@@ -197,6 +228,17 @@ def process_command(command, context_path, id, persona):
             if os.path.exists(scenario_file_path):
                 command_output = f"Persona changed to {new_persona}."
                 persona = new_persona
+                config_file = os.path.join(main_path, "config.py")
+
+                with open(config_file, "r", encoding="utf-8") as file:
+                    lines = file.readlines()
+
+                with open(config_file, "w", encoding="utf-8") as file:
+                    for line in lines:
+                        if line.startswith("perso"):
+                            file.write(f'perso = "{new_persona}"\n')
+                        else:
+                            file.write(line)
             else:
                 command_output = f"Persona '{new_persona}' not found. Keeping current persona."
         else:
@@ -212,10 +254,10 @@ def groupConvert(user_id, msg):
 
     return user_id+':'+msg
 
-
-perso = config.perso
-debug_mode = config.debug_mode
-main_path = config.main_path
+#
+# perso = 'Atalia'
+# debug_mode = True
+main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 
 id = '12345'
 user_id = '183'
