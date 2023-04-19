@@ -1,25 +1,15 @@
-
-
-
-import json
-from nonebot import on_command, on_message
-from nonebot.rule import to_me
-from nonebot.adapters import Message
+from nonebot import on_message
 from nonebot.adapters import Event
-import requests
-import re
 
 import os
-import openai
 import json
 import requests
-import re
 import tiktoken
 from datetime import datetime, timedelta
 import sys
 main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 sys.path.append(main_path)
-from config import perso,debug_mode
+from Mid.config import debug_mode,allow_group
 # import config
 
 
@@ -50,15 +40,17 @@ scenario_path, memory_path, log_path, plugin_path = initialize_paths(main_path)
 chatgpt = on_message()
 @chatgpt.handle()
 async def handle_function(event: Event):
-    perso = 'Atalia'
-    debug_mode = True   
+    # perso = 'Atalia'
+    # debug_mode = True
 
     is_group = False
     msg = event.get_plaintext()
     user_id = event.get_user_id()
     group_id = '1467'
-    # await chatgpt.finish('user_id')
 
+    # await chatgpt.finish('')
+    if((is_group==True) and (allow_group == False)):
+        await chatgpt.finish('')
     id = user_id
     if is_group:  # group manage 1
         id = group_id
@@ -260,6 +252,34 @@ def initMemory(id, persona):
             json.dump([], f)
 
         return new_file_name
+
+
+def update_config(main_path, variable_name, new_value):
+    config_file_path = os.path.join(main_path, "config.py")
+
+    # Read the content of the config.py file
+    with open(config_file_path, "r", encoding="utf-8") as f:
+        content = f.readlines()
+
+    # Find the line containing the variable and update its value
+    try:
+        variable_found = False
+        for i, line in enumerate(content):
+            if line.startswith(variable_name):
+                content[i] = f"{variable_name} = {new_value}\n"
+                variable_found = True
+                break
+
+        if not variable_found:
+            raise ValueError(f"Variable '{variable_name}' not found in the config file.")
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        sys.exit(1)
+
+    # Write the updated content back to the config.py file
+    with open(config_file_path, "w", encoding="utf-8") as f:
+        f.writelines(content)
 
 
 
