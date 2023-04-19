@@ -3,12 +3,15 @@ from rest_framework.decorators import api_view
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .openai_key import key
+# from .openai_key import key
 import requests
 import json
+import sys;
+sys.path.append(r'E:\System\key')
+import key1
 import os
 
-openai_secret_key = key
+openai_secret_key = key1.key
 
 @api_view(['POST'])
 def chat_api(request):

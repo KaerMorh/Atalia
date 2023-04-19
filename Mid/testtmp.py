@@ -7,7 +7,7 @@ import tiktoken
 from datetime import datetime, timedelta
 import config
 
-#memorypath的生成要放在外面
+
 
 def loadScenario(name):  #加载人格
     file_path = os.path.join(scenario_path, f"{name}.json")
@@ -188,7 +188,7 @@ def process_command(command, context_path, id, persona):
         new_file_name = f"{id}_{persona}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         new_file_path = os.path.join(memory_path, new_file_name)
         with open(new_file_path, "w", encoding="utf-8") as f:
-            json.dump([], f)
+            json.dump([{"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}], f)
         command_output = "New conversation started."
     elif cmd_parts[0] == "!change":
         if len(cmd_parts) > 1:
