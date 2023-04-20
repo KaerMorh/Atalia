@@ -11,7 +11,7 @@ from nonebot.adapters.onebot.v11 import Bot, Message, PrivateMessageEvent ,Group
 
 main_path = r"C:\Users\KaerMorh\Atalia\Mid"
 sys.path.append(main_path)
-from config import debug_mode, allow_group, perso
+from config import debug_mode, allow_group, perso,change_perso_in_file
 
 # import config
 
@@ -24,7 +24,7 @@ from config import debug_mode, allow_group, perso
 # msg = ''
 
 
-t =1
+# t =1
 def initialize_paths(main_path):
     scenario_path = os.path.join(main_path, "Scenario")
     memory_path = os.path.join(main_path, "Memory")
@@ -342,15 +342,16 @@ def process_command(command, context_path, id, persona):
                 persona = new_persona
                 config_file = os.path.join(main_path, "config.py")
 
-                with open(config_file, "r", encoding="utf-8") as file:
-                    lines = file.readlines()
+                if change_perso_in_file:
+                    with open(config_file, "r", encoding="utf-8") as file:
+                        lines = file.readlines()
 
-                with open(config_file, "w", encoding="utf-8") as file:
-                    for line in lines:
-                        if line.startswith("perso"):
-                            file.write(f'perso = "{new_persona}"\n')
-                        else:
-                            file.write(line)
+                    with open(config_file, "w", encoding="utf-8") as file:
+                        for line in lines:
+                            if line.startswith("perso"):
+                                file.write(f'perso = "{new_persona}"\n')
+                            else:
+                                file.write(line)
             else:
                 command_output = f"Persona '{new_persona}' not found. Keeping current persona."
         else:
