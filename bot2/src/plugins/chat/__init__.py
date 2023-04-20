@@ -68,6 +68,7 @@ async def handle_Private(event: PrivateMessageEvent):
     # await chatgpt.finish(str(user_id))
 
     text = main(msg,user_id,group_id,is_group)
+
     await chatgpt.finish(text)
 
 
@@ -158,7 +159,13 @@ def convert(persona, msg, role=0):  # 将人格与对话合一，生成conversat
     return result
 
 
+context_cache = {}  # 在程序开始时创建一个字典缓存
+
 def load_context(context_path):
+    if context_path in context_cache:
+        # 如果缓存中存在上下文，直接返回缓存的上下文
+        return context_cache[context_path]
+
     with open(context_path, "r", encoding="utf-8") as f:
         file_content = f.read()
 
@@ -183,6 +190,9 @@ def load_context(context_path):
     with open(context_path, "w", encoding="utf-8") as f:
         json.dump(context + [{"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}], f)
 
+    # 将上下文添加到缓存中
+    context_cache[context_path] = context
+
     return context
 
 
@@ -201,6 +211,10 @@ def save2txt(context_path, msg, role=0):
     # Save the updated conversation back to the JSON file, with the timestamp
     with open(context_path, "w", encoding="utf-8") as f:
         json.dump(updated_conversation + [{"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}], f)
+
+    # 将更新后的上下文存储到 context_cache 字典中
+    context_cache[context_path] = updated_conversation
+
 
 
 def log_message(log_path, context_path, tokens_used, user_msg, assistant_msg, debug_mode=False):
