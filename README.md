@@ -1,5 +1,5 @@
 ## Atalia
-Experimental ChatGPT Powered QQ Bot
+Experimental ChatGPT Powered QQ Bot.
 
 ---
 
